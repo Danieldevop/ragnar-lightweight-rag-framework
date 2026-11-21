@@ -30,3 +30,8 @@ Thumbs.db
 # Local API keys
 .gemini_api_key
 .env.local
+
+# Corpus derivado (nunca versionar datos de agentes)
+**/chunks.jsonl
+**/vector_index.db
+**/transcripts/
