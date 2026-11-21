@@ -35,3 +35,10 @@ Thumbs.db
 **/chunks.jsonl
 **/vector_index.db
 **/transcripts/
+
+# Este repo es SOLO el framework: cualquier otra carpeta (corpus de agentes) queda fuera
+/*
+!/core/
+!/README.md
+!/.gitignore
+!/LICENSE
