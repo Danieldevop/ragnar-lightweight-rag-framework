@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+
+# Secrets & Environment
+.env
+*.key
+*.token
+
+# Generated indexes (regenerate with indexer.py)
+*.db
+
+# Raw scraped data
+**/raw/
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/
+.idea/
+
+# Local API keys
+.gemini_api_key
+.env.local
