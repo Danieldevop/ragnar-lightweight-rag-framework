@@ -1,8 +1,17 @@
 # ⚔️ RAGnar
 
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![SQLite](https://img.shields.io/badge/storage-SQLite-003B57?logo=sqlite&logoColor=white)](https://sqlite.org/)
+[![NumPy](https://img.shields.io/badge/vector%20math-NumPy-013243?logo=numpy&logoColor=white)](https://numpy.org/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-3DA639)](LICENSE)
+
 ### El framework que convierte el caos de tus datos en conocimiento consultable.
 
 > **Ragnarök para tu desorden. Valhalla para tus datos.**
+
+![RAGnar en el terminal](assets/ragnar-pipeline.png)
+
+<p align="center"><a href="assets/ragnar-demo.gif"><b>▶ Ver la demo animada</b></a> — ejecución real: 1 documento → 7 chunks → 7 vectores → búsqueda semántica.</p>
 
 RAGnar es un marco de ingeniería de datos para **RAG (Retrieval-Augmented Generation)** que recoge cualquier fuente — JSON de scrapers, CSV, Markdown, transcripciones, carpetas enteras — y la convierte en una base de conocimiento consultable en milisegundos. Sin Docker. Sin servidores residentes. Sin código duplicado en cada proyecto.
 
@@ -78,6 +87,8 @@ Salida real del cuervo:
 ```text
 ragnar-lightweight-rag-framework/
 ├── README.md
+├── LICENSE
+├── assets/                     # captura y demo animada del CLI
 ├── .gitignore                  # este repo es solo el motor
 └── core/
     ├── chunker.py              # EL FORJADOR — ETL agnóstico
@@ -146,6 +157,12 @@ Una línea, un objeto, siete campos obligatorios:
 Para quien construye agentes con conocimiento propio y no quiere montar un data lake para 4.000 parágrafos. Para quien valora que el pipeline se entienda en cinco minutos y se pueda auditar en diez.
 
 **Un corpus. Cuatro mandatos. Cero humo.**
+
+---
+
+## 📄 Licencia
+
+MIT — úsalo, modifícalo y véndelo si te sirve. Ver [`LICENSE`](LICENSE).
 
 ---
 
