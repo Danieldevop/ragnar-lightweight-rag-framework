@@ -48,7 +48,7 @@ flowchart LR
 | **Forjar** | `core/chunker.py` | Trocea y limpia cualquier formato en fragmentos de ~1.000 caracteres con solapamiento alineado a oraciones. | `python core/chunker.py -i datos.json -o mi-proyecto/fuente/chunks.jsonl -s mi_fuente` |
 | **Vigilar** | `core/validator.py` | Valida las 7 claves canónicas, los tipos y la numeración secuencial antes de gastar un céntimo en embeddings. | `python core/validator.py mi-proyecto/fuente/chunks.jsonl` |
 | **Tejer** | `core/indexer.py` | Genera embeddings Gemini (768 dim) y los persiste en SQLite con control de tasa y reanudación. | `python core/indexer.py -c mi-proyecto/fuente/chunks.jsonl -d mi-proyecto/fuente/vector_index.db` |
-| **Invocar** | `core/searcher.py` | Similitud coseno vectorizada con NumPy directo sobre SQLite. Respuestas en ~2 ms. | `python core/searcher.py -d mi-proyecto/fuente/vector_index.db "tu pregunta" --top 3` |
+| **Invocar** | `core/searcher.py` | Similitud coseno vectorizada con NumPy directo sobre SQLite. Respuestas en ~2 ms. Admite `--min-score` para descartar fragmentos fuera de tema. | `python core/searcher.py -d mi-proyecto/fuente/vector_index.db "tu pregunta" --top 3 --min-score 0.65` |
 
 ---
 
@@ -69,7 +69,7 @@ export GEMINI_API_KEY="tu_api_key"      # Windows: $env:GEMINI_API_KEY="..."
 python core/indexer.py -c mi-proyecto/fuente/chunks.jsonl -d mi-proyecto/fuente/vector_index.db
 
 # 4. INVOCAR: pregunta y recupera
-python core/searcher.py -d mi-proyecto/fuente/vector_index.db "¿cómo negocio un salario?" --top 3
+python core/searcher.py -d mi-proyecto/fuente/vector_index.db "¿cómo negocio un salario?" --top 3 --min-score 0.65
 ```
 
 Salida real del cuervo:

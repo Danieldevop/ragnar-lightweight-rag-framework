@@ -41,7 +41,7 @@ Este directorio es el motor de **RAGnar**: los cuatro módulos del pipeline más
 | **`chunker.py`** | **ETL** | Ingesta agnóstica multiformato (.json, .jsonl, .csv, .tsv, .md, .txt o carpetas completas). Limpia el texto y genera fragmentos de ~1.000 caracteres con solapamiento inteligente alineado a oraciones naturales. | `python chunker.py -i input.json -o chunks.jsonl -s youtube` |
 | **`validator.py`** | **QA** | Validador estricto de integridad. Comprueba las 7 claves canónicas, tipos de datos, formato de `chunk_id == source_id:NNN` y numeración secuencial base 0. | `python validator.py chunks.jsonl` |
 | **`indexer.py`** | **Vectores** | Indexador semántico. Genera embeddings normalizados (Gemini Matryoshka 768 dim) y persiste texto y vectores en SQLite (`vector_index.db`) con soporte para reanudación y control de tasa (rate limiting). | `python indexer.py -c chunks.jsonl -d vector_index.db` |
-| **`searcher.py`** | **Buscador** | Motor de búsqueda por similitud coseno vectorizada. Consultable vía CLI o integrable como módulo por cualquier agente. | `python searcher.py -d vector_index.db "pregunta" --top 3` |
+| **`searcher.py`** | **Buscador** | Motor de búsqueda por similitud coseno vectorizada. Consultable vía CLI o integrable como módulo por cualquier agente. Admite umbral de relevancia para no citar fragmentos fuera de tema. | `python searcher.py -d vector_index.db "pregunta" --top 3 --min-score 0.65` |
 | **`config.py`** | **Credenciales** | Resuelve la API key (`GEMINI_API_KEY` → `GEMINI_KEY_FILE` → `.gemini_api_key` → Vault local). Sin secretos incrustados. | — |
 
 ---
@@ -70,7 +70,24 @@ python rag/core/validator.py rag/mi-agente/fuente/chunks.jsonl
 python rag/core/indexer.py -c rag/mi-agente/fuente/chunks.jsonl -d rag/mi-agente/fuente/vector_index.db
 
 # 4. Consulta semántica desde el Agente
-python rag/core/searcher.py -d rag/mi-agente/fuente/vector_index.db "consulta" --top 3
+python rag/core/searcher.py -d rag/mi-agente/fuente/vector_index.db "consulta" --top 3 --min-score 0.65
+```
+
+### Umbral de relevancia (`--min-score`)
+
+El coseno devuelve siempre un "ganador", incluso si el tema no está en el corpus. `--min-score` corta esa falsa respuesta:
+
+```bash
+# Dentro del corpus  → devuelve fragmentos (0.69–0.75)
+python core/searcher.py -d mi.db "negociar salario" --min-score 0.65
+
+# Fuera del corpus   → no devuelve nada y avisa (0.55–0.58)
+python core/searcher.py -d mi.db "receta de tamales" --min-score 0.65
+```
+
+Si no se pasa, el comportamiento es el de siempre (sin filtro). Con `--json` en una base vacía o sin coincidencias se imprime `[]`.
+
+```bash
 ```
 
 ---
