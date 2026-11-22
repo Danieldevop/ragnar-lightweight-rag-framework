@@ -1,42 +1,102 @@
-# Framework RAG Lightweight
+# ⚔️ RAGnar
 
-Marco de ingeniería de datos modular y agnóstico a formatos para construir bases de conocimiento para **RAG (Retrieval-Augmented Generation)** en arquitecturas multi-agente, sin infraestructura pesada ni servidores en segundo plano.
+### El framework que convierte el caos de tus datos en conocimiento consultable.
 
-Un pipeline completo en cuatro etapas — **ETL → QA → Vectorización → Búsqueda** — con código compartido y datos aislados por fuente.
+> **Ragnarök para tu desorden. Valhalla para tus datos.**
+
+RAGnar es un marco de ingeniería de datos para **RAG (Retrieval-Augmented Generation)** que recoge cualquier fuente — JSON de scrapers, CSV, Markdown, transcripciones, carpetas enteras — y la convierte en una base de conocimiento consultable en milisegundos. Sin Docker. Sin servidores residentes. Sin código duplicado en cada proyecto.
+
+Nació resolviendo un problema real: **152 vídeos, 1.264 fragmentos, 768 dimensiones y 2 milisegundos de respuesta** sobre un portátil, no sobre un clúster.
 
 ---
 
-## 📁 Estructura del Repositorio
+## 🪓 ¿Por qué RAGnar?
 
-```text
-.
-├── README.md
-├── .gitignore
-└── core/                       <-- MOTOR COMPARTIDO (todo el código)
-    ├── chunker.py              # ETL universal y troceador semántico
-    ├── validator.py            # QA y validador de esquema canónico
-    ├── indexer.py              # Vectorizador con Gemini + SQLite
-    ├── searcher.py             # Búsqueda semántica por similitud coseno
-    ├── config.py               # Resolución de credenciales (sin secretos en código)
-    ├── requirements.txt
-    ├── .env.example
-    └── README.md               # Documentación técnica detallada
+- **Un contrato, infinitas fuentes.** Da igual si entra un JSON de scraper o una carpeta con 300 Markdown: sale siempre el mismo esquema canónico. Tu agente nunca sabe de dónde vino el dato.
+- **Código y datos nunca se mezclan.** El motor vive en `core/`. Cada proyecto guarda solo su `chunks.jsonl` y su `vector_index.db`. Mejoras el motor una vez y los veinte agentes lo heredan.
+- **Cero infraestructura pesada.** Python + SQLite + NumPy. Nada de contenedores, ni bases vectoriales cliente-servidor, ni procesos comiendo RAM en segundo plano.
+- **Reanudable por diseño.** Si la API se cae a mitad de indexación, RAGnar retoma donde iba. Los 1.264 vectores de la prueba se hicieron en tres sesiones sin perder un solo chunk.
+
+---
+
+## 🛡️ Los Cuatro Mandatos
+
+Todo corpus pasa por el mismo ritual, en este orden y sin atajos:
+
+```mermaid
+flowchart LR
+    A["Fuente cruda<br/>JSON · CSV · MD · TXT"] --> B["chunker.py<br/>EL FORJADOR"]
+    B --> C["chunks.jsonl<br/>canónico"]
+    C --> D["validator.py<br/>EL VIGÍA"]
+    D --> E["indexer.py<br/>EL TEJEDOR"]
+    E --> F[("vector_index.db<br/>SQLite + BLOB")]
+    F --> G["searcher.py<br/>EL CUERVO"]
+    G --> H["Tu agente<br/>responde con datos"]
 ```
 
-El repositorio contiene **solo el motor**. Los datos derivados (`chunks.jsonl`, `vector_index.db`) se generan en carpetas externas y nunca se versionan.
+| Mandato | Módulo | Qué hace | Comando |
+|---|---|---|---|
+| **Forjar** | `core/chunker.py` | Trocea y limpia cualquier formato en fragmentos de ~1.000 caracteres con solapamiento alineado a oraciones. | `python core/chunker.py -i datos.json -o mi-proyecto/fuente/chunks.jsonl -s mi_fuente` |
+| **Vigilar** | `core/validator.py` | Valida las 7 claves canónicas, los tipos y la numeración secuencial antes de gastar un céntimo en embeddings. | `python core/validator.py mi-proyecto/fuente/chunks.jsonl` |
+| **Tejer** | `core/indexer.py` | Genera embeddings Gemini (768 dim) y los persiste en SQLite con control de tasa y reanudación. | `python core/indexer.py -c mi-proyecto/fuente/chunks.jsonl -d mi-proyecto/fuente/vector_index.db` |
+| **Invocar** | `core/searcher.py` | Similitud coseno vectorizada con NumPy directo sobre SQLite. Respuestas en ~2 ms. | `python core/searcher.py -d mi-proyecto/fuente/vector_index.db "tu pregunta" --top 3` |
 
 ---
 
-## 🏛️ Principios de Diseño
+## 🚀 Inicio Rápido
 
-| Principio | Implementación |
-|---|---|
-| **Código y datos separados** | El motor vive en `core/`; cada fuente solo aporta su `chunks.jsonl` y su `vector_index.db`. |
-| **Un contrato único** | Todo input (JSON, JSONL, CSV, TSV, MD, TXT o carpeta mixta) se normaliza al mismo esquema de 7 campos. |
-| **Aislamiento vectorial** | Una base SQLite por fuente y agente: sin contaminación cruzada, reindexaciones atómicas. |
-| **Cero infraestructura pesada** | Python nativo + SQLite + NumPy. Sin Docker, sin servidores vectoriales residentes. |
+```bash
+# 0. Requisitos: Python 3.10+
+pip install -r core/requirements.txt
 
-**Esquema canónico** (`chunks.jsonl`, un objeto por línea):
+# 1. FORJAR: cualquier fuente -> chunks.jsonl
+python core/chunker.py -i datos.json -o mi-proyecto/fuente/chunks.jsonl -s mi_fuente
+
+# 2. VIGILAR: esquema, tipos y secuencia
+python core/validator.py mi-proyecto/fuente/chunks.jsonl
+
+# 3. TEJER: 768 dimensiones por fragmento
+export GEMINI_API_KEY="tu_api_key"      # Windows: $env:GEMINI_API_KEY="..."
+python core/indexer.py -c mi-proyecto/fuente/chunks.jsonl -d mi-proyecto/fuente/vector_index.db
+
+# 4. INVOCAR: pregunta y recupera
+python core/searcher.py -d mi-proyecto/fuente/vector_index.db "¿cómo negocio un salario?" --top 3
+```
+
+Salida real del cuervo:
+
+```text
+🔎 Resultados para: "como negociar un salario" (Top 3)
+[1] ¿Cómo pedir un aumento de sueldo? (Similitud: 0.7482)
+    URL: https://www.youtube.com/watch?v=... | ID: videoId:012
+```
+
+---
+
+## 📁 Estructura
+
+```text
+ragnar-lightweight-rag-framework/
+├── README.md
+├── .gitignore                  # este repo es solo el motor
+└── core/
+    ├── chunker.py              # EL FORJADOR — ETL agnóstico
+    ├── validator.py            # EL VIGÍA — QA del esquema
+    ├── indexer.py              # EL TEJEDOR — embeddings -> SQLite
+    ├── searcher.py             # EL CUERVO — búsqueda semántica
+    ├── config.py               # credenciales, sin secretos en código
+    ├── requirements.txt
+    ├── .env.example
+    └── README.md               # documentación técnica detallada
+```
+
+Los datos viven fuera: `mi-proyecto/<fuente>/chunks.jsonl` + `vector_index.db`. Nada de corpus en el repositorio, ni por error: el `.gitignore` bloquea todo lo que no sea `core/`.
+
+---
+
+## 📜 El Contrato Canónico
+
+Una línea, un objeto, siete campos obligatorios:
 
 ```json
 {
@@ -51,52 +111,42 @@ El repositorio contiene **solo el motor**. Los datos derivados (`chunks.jsonl`, 
 }
 ```
 
+`chunk_id` es siempre `source_id:NNN` con numeración secuencial desde 0. `validator.py` lo hace cumplir; `indexer.py` se niega a indexar si algo no encaja.
+
 ---
 
-## 🚀 Inicio Rápido
+## ⚙️ Principios de Diseño
 
-```bash
-# 0. Requisitos (Python 3.10+)
-pip install -r core/requirements.txt
-
-# 1. ETL: cualquier fuente -> chunks.jsonl canónico
-python core/chunker.py -i datos.json -o mi-proyecto/fuente/chunks.jsonl -s mi_fuente
-
-# 2. QA: valida esquema, tipos y numeración secuencial
-python core/validator.py mi-proyecto/fuente/chunks.jsonl
-
-# 3. Vectorización (embeddings Gemini, 768 dim)
-export GEMINI_API_KEY="tu_api_key"
-python core/indexer.py -c mi-proyecto/fuente/chunks.jsonl -d mi-proyecto/fuente/vector_index.db
-
-# 4. Búsqueda semántica (~2 ms por consulta)
-python core/searcher.py -d mi-proyecto/fuente/vector_index.db "tu pregunta" --top 3
-```
-
-Flujo del pipeline:
-
-```mermaid
-flowchart LR
-    A["Fuente cruda<br/>JSON · CSV · MD · TXT"] --> B["chunker.py<br/>ETL"]
-    B --> C["chunks.jsonl<br/>canónico"]
-    C --> D["validator.py<br/>QA"]
-    D --> E["indexer.py<br/>embeddings"]
-    E --> F[("vector_index.db<br/>SQLite + BLOB")]
-    F --> G["searcher.py<br/>agente / RAG"]
-```
+| Principio | Implementación |
+|---|---|
+| **Código y datos separados** | El motor en `core/`; cada fuente aporta solo sus datos. |
+| **Un contrato único** | Todo input se normaliza al mismo esquema de 7 campos. |
+| **Aislamiento vectorial** | Una SQLite por fuente y agente: sin contaminación cruzada, reindexación atómica. |
+| **Cero infraestructura pesada** | Python nativo + SQLite + NumPy. |
+| **Sin secretos en código** | `config.py` resuelve la API key desde entorno, archivo o Vault. |
 
 ---
 
 ## 🔑 Credenciales
 
-`config.py` resuelve la API key en este orden: `GEMINI_API_KEY` en el entorno → `GEMINI_KEY_FILE` → archivo `.gemini_api_key` junto al script o al índice → Vault local de OpenBot. Ninguna credencial se incrusta ni se versiona.
+`core/config.py` busca la API key en este orden: `GEMINI_API_KEY` → `GEMINI_KEY_FILE` → `.gemini_api_key` junto al script o al índice → Vault local de OpenBot. Nunca se versiona ninguna clave.
 
 ---
 
-## 🔮 Extensibilidad
+## 🔮 Hacia Dónde Crece
 
-- **Documentos complejos:** extractores OCR/tabulares (`pdfplumber`, `marker`) antes de `chunker.py`.
+- **Documentos complejos:** extractores OCR y tabulares (`pdfplumber`, `marker`) antes de `chunker.py`.
 - **Búsqueda híbrida:** SQLite FTS5 (BM25) combinada con la similitud vectorial en `searcher.py`.
-- **Escala masiva:** sustituir el motor interno de `indexer.py` por LanceDB manteniendo el resto del contrato intacto.
+- **Escala masiva:** cambiar el motor interno de `indexer.py` por LanceDB sin tocar el contrato ni el resto del pipeline.
 
-Documentación técnica completa: [`core/README.md`](core/README.md).
+---
+
+## 🧭 Para Quién Es
+
+Para quien construye agentes con conocimiento propio y no quiere montar un data lake para 4.000 parágrafos. Para quien valora que el pipeline se entienda en cinco minutos y se pueda auditar en diez.
+
+**Un corpus. Cuatro mandatos. Cero humo.**
+
+---
+
+Documentación técnica completa: [`core/README.md`](core/README.md)

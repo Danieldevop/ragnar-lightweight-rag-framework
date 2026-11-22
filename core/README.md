@@ -1,6 +1,8 @@
-# Marco de Trabajo RAG Lightweight (Core Framework)
+# ⚔️ RAGnar · Núcleo del Framework (Core)
 
 Marco de ingeniería de datos modular, ligero y agnóstico a formatos para construir y desplegar sistemas de **RAG (Retrieval-Augmented Generation)** en arquitecturas multi-agente sin infraestructura pesada ni servidores en segundo plano.
+
+Este directorio es el motor de **RAGnar**: los cuatro módulos del pipeline más la configuración de credenciales. Los datos (`chunks.jsonl`, `vector_index.db`) viven fuera, en la carpeta de cada proyecto.
 
 ---
 
