@@ -75,10 +75,18 @@ def load_from_json(path: Path):
     if not content:
         return []
 
+    # Un .jsonl es una línea por documento: nunca un JSON único, aunque empiece por "{".
+    if path.suffix.lower() == ".jsonl":
+        return [json.loads(line) for line in content.splitlines() if line.strip()]
+
     if content.startswith("["):
         return json.loads(content)
     elif content.startswith("{"):
-        parsed = json.loads(content)
+        try:
+            parsed = json.loads(content)
+        except json.JSONDecodeError:
+            # Varios objetos pegados (JSONL mal nombrado): una línea por documento.
+            return [json.loads(line) for line in content.splitlines() if line.strip()]
         # Si el dict envuelve una lista (ej: {"data": [...]}, {"documents": [...]}, etc.)
         for key in ["items", "results", "data", "documents", "records", "pages", "articles", "rows"]:
             if isinstance(parsed.get(key), list):
@@ -182,9 +190,12 @@ def build_chunks(input_path: Path, output_file: Path, source_label: str = "gener
         if not str(text).strip():
             continue
 
-        # Metadatos extra libres
+        # Metadatos extra libres: las claves sueltas y el contenido de un "meta" explícito,
+        # todo aplanado en un solo objeto (evita el anti-patrón {"meta": {"meta": {...}}}).
         known_keys = set(TEXT_CANDIDATES + TITLE_CANDIDATES + ID_CANDIDATES + URL_CANDIDATES)
-        extra_meta = {k: v for k, v in doc.items() if k not in known_keys}
+        extra_meta = {k: v for k, v in doc.items() if k not in known_keys and k != "meta"}
+        if isinstance(doc.get("meta"), dict):
+            extra_meta.update(doc["meta"])
 
         # Trocear texto
         pieces = split_into_chunks(str(text), target=target_chars, overlap=overlap_chars)

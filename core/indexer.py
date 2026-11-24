@@ -43,13 +43,22 @@ def init_db(db_path: Path) -> sqlite3.Connection:
             chunk_index INTEGER,
             source TEXT,
             text TEXT,
-            embedding BLOB
+            embedding BLOB,
+            meta TEXT
         )
         """
     )
+    _ensure_meta_column(conn)
     emb.ensure_meta_table(conn)
     conn.commit()
     return conn
+
+
+def _ensure_meta_column(conn: sqlite3.Connection) -> None:
+    """Añade la columna meta a índices creados antes de existir (metadatos del chunk)."""
+    columns = {row[1] for row in conn.execute("PRAGMA table_info(chunks)")}
+    if columns and "meta" not in columns:
+        conn.execute("ALTER TABLE chunks ADD COLUMN meta TEXT")
 
 
 def embed_batch(texts, api_key=None, retries=8):
@@ -174,14 +183,15 @@ def index_file(
                 item.get("source", "general"),
                 item["text"],
                 np.array(vec, dtype=np.float32).tobytes(),
+                json.dumps(item["meta"], ensure_ascii=False) if item.get("meta") else None,
             )
             for item, vec in zip(batch, vectors)
         ]
         cur.executemany(
             """
             INSERT OR REPLACE INTO chunks
-            (chunk_id, source_id, title, url, chunk_index, source, text, embedding)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            (chunk_id, source_id, title, url, chunk_index, source, text, embedding, meta)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             rows,
         )

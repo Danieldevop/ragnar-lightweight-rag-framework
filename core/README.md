@@ -40,7 +40,7 @@ Este directorio es el motor de **RAGnar**: los cuatro módulos del pipeline más
 |---|---|---|---|
 | **`chunker.py`** | **ETL** | Ingesta agnóstica multiformato (.json, .jsonl, .csv, .tsv, .md, .txt o carpetas completas). Limpia el texto y genera fragmentos de ~1.000 caracteres con solapamiento inteligente alineado a oraciones naturales. | `python chunker.py -i input.json -o chunks.jsonl -s youtube` |
 | **`validator.py`** | **QA** | Validador estricto de integridad. Comprueba las 7 claves canónicas, tipos de datos, formato de `chunk_id == source_id:NNN` y numeración secuencial base 0. | `python validator.py chunks.jsonl` |
-| **`indexer.py`** | **Vectores** | Indexador semántico. Genera embeddings (Gemini 768 dim o BGE-M3 local 1024 dim) y persiste texto y vectores en SQLite (`vector_index.db`) con reanudación, control de tasa y el motor grabado en la tabla `meta`. | `python indexer.py -c chunks.jsonl -d vector_index.db [--provider ollama]` |
+| **`indexer.py`** | **Vectores** | Indexador semántico. Genera embeddings (Gemini 768 dim o BGE-M3 local 1024 dim) y persiste texto, vectores y los metadatos del chunk (columna `meta` en JSON) en SQLite, con reanudación, control de tasa y el motor grabado en la tabla `meta`. | `python indexer.py -c chunks.jsonl -d vector_index.db [--provider ollama]` |
 | **`searcher.py`** | **Buscador** | Motor de búsqueda por similitud coseno vectorizada. Vectoriza la consulta con el motor del índice y, si ese motor falla, responde con el índice local gemelo (`*.bge.db`). Admite umbral de relevancia. | `python searcher.py -d vector_index.db "pregunta" --top 3 --min-score 0.65` |
 | **`embedders.py`** | **Motores** | Fábrica de proveedores de embeddings: Gemini (nube) y Ollama/BGE-M3 (local). Detecta qué está disponible, evita reintentos inútiles ante 402/429 y lee y escribe los metadatos del índice. | — |
 | **`config.py`** | **Credenciales** | Resuelve la API key (`GEMINI_API_KEY` → `GEMINI_KEY_FILE` → `.gemini_api_key` → Vault local). Sin secretos incrustados. | — |
@@ -111,6 +111,8 @@ RAG_CORPUS="ruta/al/vector_index.db" RAG_E2E=1 python -m unittest tests.test_ret
 ```
 
 Los tests de recuperación son preguntas de oro: comprueban que cada motor sigue encontrando lo que encontraba y que sigue callando ante preguntas fuera de tema. Son la red de seguridad ante cambios de motor, troceado o umbral.
+
+`test_pipeline.py` cubre el ETL: lectura de `.jsonl` con varios documentos, aplanado de `meta` y propagación de esos metadatos hasta la búsqueda.
 
 ---
 

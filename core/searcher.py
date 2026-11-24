@@ -51,7 +51,9 @@ def _embed_query(query: str, db_path: Path, provider: str = "auto") -> tuple[np.
 def _load_and_rank(db_path: Path, q_vec: np.ndarray, top_k: int, min_score: float):
     conn = sqlite3.connect(db_path)
     try:
-        rows = conn.execute("SELECT chunk_id, title, url, text, embedding FROM chunks").fetchall()
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(chunks)")}
+        extra = ", meta" if "meta" in columns else ", NULL"
+        rows = conn.execute(f"SELECT chunk_id, title, url, text, embedding{extra} FROM chunks").fetchall()
     finally:
         conn.close()
     if not rows:
@@ -78,15 +80,19 @@ def _load_and_rank(db_path: Path, q_vec: np.ndarray, top_k: int, min_score: floa
         score = float(scores[idx])
         if score < min_score:
             break  # el orden es descendente: nada mejor queda por venir
-        results.append(
-            {
-                "chunk_id": rows[idx][0],
-                "title": rows[idx][1],
-                "url": rows[idx][2],
-                "score": score,
-                "text": rows[idx][3],
-            }
-        )
+        record = {
+            "chunk_id": rows[idx][0],
+            "title": rows[idx][1],
+            "url": rows[idx][2],
+            "score": score,
+            "text": rows[idx][3],
+        }
+        if len(rows[idx]) > 5 and rows[idx][5]:
+            try:
+                record["meta"] = json.loads(rows[idx][5])
+            except (ValueError, TypeError):
+                pass
+        results.append(record)
         if len(results) >= top_k:
             break
     return results, float(scores[order[0]])
