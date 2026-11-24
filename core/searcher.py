@@ -190,9 +190,12 @@ def main():
 
     if not results:
         umbral = diag.get("min_score", 0.0)
+        motor = diag.get("provider")
+        respaldo = " · RESPALDO LOCAL" if diag.get("fallback") else ""
         mejor = f" (el mejor fragmento quedó en {best:.4f})" if umbral > 0 else ""
         print(f"\n⚠️  Sin resultados para: \"{args.query}\"")
-        print(f"    Ningún fragmento supera min-score={umbral:.2f}{mejor}")
+        print(f"    Motor: {motor} · min-score {umbral:.2f}{respaldo}")
+        print(f"    Ningún fragmento llega a ese umbral{mejor}")
         print("    → Este tema no está cubierto en el corpus; responde sin citar fuentes.")
         return
 
