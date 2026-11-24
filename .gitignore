@@ -39,6 +39,7 @@ Thumbs.db
 # Este repo es SOLO el framework: cualquier otra carpeta (corpus de agentes) queda fuera
 /*
 !/core/
+!/tests/
 !/README.md
 !/.gitignore
 !/LICENSE

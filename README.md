@@ -47,8 +47,8 @@ flowchart LR
 |---|---|---|---|
 | **Forjar** | `core/chunker.py` | Trocea y limpia cualquier formato en fragmentos de ~1.000 caracteres con solapamiento alineado a oraciones. | `python core/chunker.py -i datos.json -o mi-proyecto/fuente/chunks.jsonl -s mi_fuente` |
 | **Vigilar** | `core/validator.py` | Valida las 7 claves canónicas, los tipos y la numeración secuencial antes de gastar un céntimo en embeddings. | `python core/validator.py mi-proyecto/fuente/chunks.jsonl` |
-| **Tejer** | `core/indexer.py` | Genera embeddings Gemini (768 dim) y los persiste en SQLite con control de tasa y reanudación. | `python core/indexer.py -c mi-proyecto/fuente/chunks.jsonl -d mi-proyecto/fuente/vector_index.db` |
-| **Invocar** | `core/searcher.py` | Similitud coseno vectorizada con NumPy directo sobre SQLite. Respuestas en ~2 ms. Admite `--min-score` para descartar fragmentos fuera de tema. | `python core/searcher.py -d mi-proyecto/fuente/vector_index.db "tu pregunta" --top 3 --min-score 0.65` |
+| **Tejer** | `core/indexer.py` | Genera embeddings con **Gemini (768 dim)** o **BGE-M3 local (1024 dim)**, con reanudación, control de tasa y el motor grabado en el índice. | `python core/indexer.py -c mi-proyecto/fuente/chunks.jsonl -d mi-proyecto/fuente/vector_index.db [--provider ollama]` |
+| **Invocar** | `core/searcher.py` | Similitud coseno vectorizada con NumPy directo sobre SQLite. Respuestas en ~2 ms. Vectoriza con el motor del índice y, si ese motor falla, responde con el índice local gemelo (`*.bge.db`). Admite `--min-score`. | `python core/searcher.py -d mi-proyecto/fuente/vector_index.db "tu pregunta" --top 3 --min-score 0.65` |
 
 ---
 
@@ -64,12 +64,20 @@ python core/chunker.py -i datos.json -o mi-proyecto/fuente/chunks.jsonl -s mi_fu
 # 2. VIGILAR: esquema, tipos y secuencia
 python core/validator.py mi-proyecto/fuente/chunks.jsonl
 
-# 3. TEJER: 768 dimensiones por fragmento
+# 3. TEJER: 768 dimensiones por fragmento (Gemini)
 export GEMINI_API_KEY="tu_api_key"      # Windows: $env:GEMINI_API_KEY="..."
 python core/indexer.py -c mi-proyecto/fuente/chunks.jsonl -d mi-proyecto/fuente/vector_index.db
 
-# 4. INVOCAR: pregunta y recupera
-python core/searcher.py -d mi-proyecto/fuente/vector_index.db "¿cómo negocio un salario?" --top 3 --min-score 0.65
+# 3b. Sin nube ni cuota: el mismo corpus con BGE-M3 local (1024 dim)
+ollama pull bge-m3
+python core/indexer.py -c mi-proyecto/fuente/chunks.jsonl -d mi-proyecto/fuente/vector_index.bge.db --provider ollama
+
+# 4. INVOCAR: pregunta y recupera (el umbral se calibra solo por motor)
+python core/searcher.py -d mi-proyecto/fuente/vector_index.db "¿cómo negocio un salario?" --top 3
+
+# 5. VERIFICAR: 16 tests offline + preguntas de oro contra tu corpus
+python -m unittest discover -s tests -v
+RAG_E2E=1 RAG_CORPUS="mi-proyecto/fuente/vector_index.db" python -m unittest tests.test_retrieval -v
 ```
 
 Salida real del cuervo:
@@ -88,6 +96,7 @@ Salida real del cuervo:
 ragnar-lightweight-rag-framework/
 ├── README.md
 ├── LICENSE
+├── tests/                      # test_core.py (offline) + test_retrieval.py (oro)
 ├── assets/                     # captura y demo animada del CLI
 ├── .gitignore                  # este repo es solo el motor
 └── core/
@@ -95,6 +104,7 @@ ragnar-lightweight-rag-framework/
     ├── validator.py            # EL VIGÍA — QA del esquema
     ├── indexer.py              # EL TEJEDOR — embeddings -> SQLite
     ├── searcher.py             # EL CUERVO — búsqueda semántica
+    ├── embedders.py            # MOTORES — Gemini en la nube, BGE-M3 local
     ├── config.py               # credenciales, sin secretos en código
     ├── requirements.txt
     ├── .env.example
