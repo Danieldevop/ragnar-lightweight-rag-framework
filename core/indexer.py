@@ -18,6 +18,7 @@ import argparse
 import json
 import sqlite3
 import sys
+import os
 import time
 from pathlib import Path
 
@@ -27,7 +28,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import embedders as emb  # noqa: E402
 
 DEFAULT_BATCH_SIZE = 45
-GEMINI_PAUSE = 30  # segundos entre lotes: respeta el rate limit de Gemini
+# Pausa entre lotes: el free tier de Gemini corta a 100 contenidos/minuto y el
+# contador es por contenido, no por petición. Con lotes de 45 y 30 s se llegaba
+# justo a 90/min y la corrida moría en el lote 11; 38 s deja ~71/min de margen.
+GEMINI_PAUSE = int(os.environ.get("RAG_INDEX_PAUSE", "38"))
 
 
 def init_db(db_path: Path) -> sqlite3.Connection:
